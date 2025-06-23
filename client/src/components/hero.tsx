@@ -98,7 +98,7 @@ const handleSubmit = async (e)=>{
                 <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                   <div className="flex items-center justify-center mb-2">
                     <Users className="w-5 h-5 text-blue-600 mr-2" />
-                    <span className="text-2xl font-bold text-slate-800">{stats.totalReviews}</span>
+                    <span className="text-2xl font-bold text-slate-800">{stats?.totalReviews}</span>
                   </div>
                   <p className="text-slate-600 text-sm">Total Reviews</p>
                 </div>
@@ -106,7 +106,7 @@ const handleSubmit = async (e)=>{
                 <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                   <div className="flex items-center justify-center mb-2">
                     <Star className="w-5 h-5 text-yellow-500 mr-2" />
-                    <span className="text-2xl font-bold text-slate-800">{stats.averageRating.toFixed(1)}</span>
+                    <span className="text-2xl font-bold text-slate-800">{stats?.averageRating.toFixed(1)}</span>
                   </div>
                   <p className="text-slate-600 text-sm">Avg Rating</p>
                 </div>
@@ -130,7 +130,6 @@ const handleSubmit = async (e)=>{
                 </div>
               </div>
 
-              {/* Sentiment Distribution */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-800 mb-3">Sentiment Distribution</h3>
                 <div className="space-y-2">
@@ -234,7 +233,7 @@ const handleSubmit = async (e)=>{
                       {review?.userName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">{review.userName}</h3>
+                      <h3 className="font-semibold text-slate-800">{review?.userName}</h3>
                       <div className="flex items-center space-x-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
