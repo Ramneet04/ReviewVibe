@@ -5,6 +5,9 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     required: false, // Optional for flexibility
   },
+  userName:{
+    type: String,
+  },
   reviewText: {
     type: String,
     required: true,
@@ -16,6 +19,9 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     enum: ['Positive', 'Negative', 'Neutral'],
     required: true,
+  },
+  reason: {
+    type: String,
   },
   createdAt: {
     type: Date,

@@ -1,122 +1,76 @@
 import React, { useState, useEffect } from 'react';
+import {useNavigate} from 'react-router-dom'
 import { Star, ThumbsUp, ThumbsDown, Meh, TrendingUp, Users, MessageSquare } from 'lucide-react';
+import { getRecentReviews, submitReview } from '../services/operations/reviews';
 
 const MovieReviewApp = () => {
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      name: "Alex Johnson",
-      rating: 5,
-      review: "Absolutely incredible! The cinematography was breathtaking and the story kept me engaged throughout. Best movie I've seen all year!",
-      sentiment: "positive",
-      confidence: 0.95,
-      timestamp: new Date('2024-06-20')
-    },
-    {
-      id: 2,
-      name: "Sarah Chen",
-      rating: 2,
-      review: "Really disappointed. The plot was confusing and the pacing was terrible. Expected much more from this director.",
-      sentiment: "negative",
-      confidence: 0.87,
-      timestamp: new Date('2024-06-19')
-    },
-    {
-      id: 3,
-      name: "Mike Rodriguez",
-      rating: 3,
-      review: "It was okay, nothing special. Some good moments but overall pretty average. Might be worth watching once.",
-      sentiment: "neutral",
-      confidence: 0.72,
-      timestamp: new Date('2024-06-18')
-    }
-  ]);
 
-  const [newReview, setNewReview] = useState({
-    name: '',
-    rating: 5,
-    review: ''
+  const navigate = useNavigate();
+  const [reviews, setReviews] = useState([]);
+  const [stats, setStats] = useState({
+  totalReviews: 0,
+  positiveCount: 0,
+  averageRating: 0,
+  positivePercent: 0,
+  negativeCount:0,
+  neutralCount:0
+});
+  const [loading, setLoading] = useState(true);
+  const [newReview,setNewReview] = useState({
+    userName:"",
+    rating:5,
+    reviewText:""
   });
-
-  // Simple sentiment analysis function
-  const analyzeSentiment = (text) => {
-    const positiveWords = ['amazing', 'incredible', 'fantastic', 'excellent', 'brilliant', 'outstanding', 'wonderful', 'perfect', 'loved', 'great', 'awesome', 'beautiful', 'stunning', 'masterpiece', 'phenomenal'];
-    const negativeWords = ['terrible', 'awful', 'horrible', 'disappointing', 'boring', 'worst', 'hate', 'disgusting', 'pathetic', 'useless', 'garbage', 'annoying', 'confusing', 'waste'];
-    
-    const words = text.toLowerCase().split(/\W+/);
-    let positiveScore = 0;
-    let negativeScore = 0;
-    
-    words.forEach(word => {
-      if (positiveWords.includes(word)) positiveScore++;
-      if (negativeWords.includes(word)) negativeScore++;
+  useEffect(()=>{
+    const fetchReviews = async ()=>{
+      try {
+        const response= await getRecentReviews();
+        setReviews(response.recentReviews);
+        setStats({
+          totalReviews: response.totalReviews,
+          positiveCount: response.positiveCount,
+          averageRating: response.averageRating,
+          positivePercent: response.positivePercent,
+          negativeCount:response.negativeCount,
+          neutralCount:response.neutralCount
+        });
+        console.log(response.recentReviews);
+      } catch (error) {
+        console.log("error while fetching reviews");
+      }
+      setLoading(false);
+    }
+    fetchReviews();
+  },[])
+  useEffect(() => {
+  if (reviews.length > 0) {
+    console.log("Updated reviews:", reviews);
+  }
+}, [reviews]);
+const handleSubmit = async (e)=>{
+  e.preventDefault();
+  const newReviewData = {
+    userName: newReview.userName,
+    rating: newReview.rating,
+    reviewText: newReview.reviewText
+  };
+  try {
+    const response = await submitReview(newReviewData);
+    setNewReview({
+    userName:"",
+    rating:5,
+    reviewText:""
+  });
+    navigate('/result', {
+      state: {
+        sentiment: response?.sentiment,
+        reason: response?.reason
+      }
     });
-    
-    const totalScore = positiveScore - negativeScore;
-    let sentiment, confidence;
-    
-    if (totalScore > 0) {
-      sentiment = 'positive';
-      confidence = Math.min(0.6 + (totalScore * 0.1), 0.98);
-    } else if (totalScore < 0) {
-      sentiment = 'negative';
-      confidence = Math.min(0.6 + (Math.abs(totalScore) * 0.1), 0.98);
-    } else {
-      sentiment = 'neutral';
-      confidence = 0.5 + Math.random() * 0.3;
-    }
-    
-    return { sentiment, confidence };
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newReview.name.trim() || !newReview.review.trim()) return;
-    
-    const sentimentData = analyzeSentiment(newReview.review);
-    
-    const review = {
-      id: reviews.length + 1,
-      name: newReview.name,
-      rating: newReview.rating,
-      review: newReview.review,
-      sentiment: sentimentData.sentiment,
-      confidence: sentimentData.confidence,
-      timestamp: new Date()
-    };
-    
-    setReviews([review, ...reviews]);
-    setNewReview({ name: '', rating: 5, review: '' });
-  };
-
-  const getSentimentStats = () => {
-    const total = reviews.length;
-    const positive = reviews.filter(r => r.sentiment === 'positive').length;
-    const negative = reviews.filter(r => r.sentiment === 'negative').length;
-    const neutral = reviews.filter(r => r.sentiment === 'neutral').length;
-    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / total;
-    
-    return { total, positive, negative, neutral, avgRating };
-  };
-
-  const stats = getSentimentStats();
-
-  const getSentimentColor = (sentiment) => {
-    switch (sentiment) {
-      case 'positive': return 'text-green-600 bg-green-50';
-      case 'negative': return 'text-red-600 bg-red-50';
-      default: return 'text-yellow-600 bg-yellow-50';
-    }
-  };
-
-  const getSentimentIcon = (sentiment) => {
-    switch (sentiment) {
-      case 'positive': return <ThumbsUp className="w-4 h-4" />;
-      case 'negative': return <ThumbsDown className="w-4 h-4" />;
-      default: return <Meh className="w-4 h-4" />;
-    }
-  };
-
+  } catch (error) {
+     console.error("Failed to submit review:", error);
+  }
+}
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
@@ -144,7 +98,7 @@ const MovieReviewApp = () => {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                   <div className="flex items-center justify-center mb-2">
                     <Users className="w-5 h-5 text-blue-600 mr-2" />
-                    <span className="text-2xl font-bold text-slate-800">{stats.total}</span>
+                    <span className="text-2xl font-bold text-slate-800">{stats.totalReviews}</span>
                   </div>
                   <p className="text-slate-600 text-sm">Total Reviews</p>
                 </div>
@@ -152,7 +106,7 @@ const MovieReviewApp = () => {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                   <div className="flex items-center justify-center mb-2">
                     <Star className="w-5 h-5 text-yellow-500 mr-2" />
-                    <span className="text-2xl font-bold text-slate-800">{stats.avgRating.toFixed(1)}</span>
+                    <span className="text-2xl font-bold text-slate-800">{stats.averageRating.toFixed(1)}</span>
                   </div>
                   <p className="text-slate-600 text-sm">Avg Rating</p>
                 </div>
@@ -160,7 +114,7 @@ const MovieReviewApp = () => {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                   <div className="flex items-center justify-center mb-2">
                     <ThumbsUp className="w-5 h-5 text-green-600 mr-2" />
-                    <span className="text-2xl font-bold text-slate-800">{stats.positive}</span>
+                    <span className="text-2xl font-bold text-slate-800">{stats.positiveCount}</span>
                   </div>
                   <p className="text-slate-600 text-sm">Positive</p>
                 </div>
@@ -169,7 +123,7 @@ const MovieReviewApp = () => {
                   <div className="flex items-center justify-center mb-2">
                     <TrendingUp className="w-5 h-5 text-blue-600 mr-2" />
                     <span className="text-2xl font-bold text-slate-800">
-                      {((stats.positive / stats.total) * 100).toFixed(0)}%
+                      {stats.positivePercent.toFixed(1)}%
                     </span>
                   </div>
                   <p className="text-slate-600 text-sm">Positive Rate</p>
@@ -185,30 +139,30 @@ const MovieReviewApp = () => {
                     <div className="flex-1 bg-slate-200 rounded-full h-2 mx-3">
                       <div 
                         className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${(stats.positive / stats.total) * 100}%` }}
+                        style={{ width: `${stats.positivePercent}%` }}
                       ></div>
                     </div>
-                    <span className="text-slate-700 text-sm w-8">{stats.positive}</span>
+                    <span className="text-slate-700 text-sm w-8">{stats.positiveCount}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-yellow-600 w-16 text-sm">Neutral</span>
                     <div className="flex-1 bg-slate-200 rounded-full h-2 mx-3">
                       <div 
                         className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${(stats.neutral / stats.total) * 100}%` }}
+                        style={{ width: `${(stats.neutralCount/stats.totalReviews)*100}%` }}
                       ></div>
                     </div>
-                    <span className="text-slate-700 text-sm w-8">{stats.neutral}</span>
+                    <span className="text-slate-700 text-sm w-8">{stats.neutralCount}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-red-600 w-16 text-sm">Negative</span>
                     <div className="flex-1 bg-slate-200 rounded-full h-2 mx-3">
                       <div 
                         className="bg-red-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${(stats.negative / stats.total) * 100}%` }}
+                        style={{ width: `${(stats.negativeCount/stats.totalReviews)*100}%` }}
                       ></div>
                     </div>
-                    <span className="text-slate-700 text-sm w-8">{stats.negative}</span>
+                    <span className="text-slate-700 text-sm w-8">{stats.negativeCount}</span>
                   </div>
                 </div>
               </div>
@@ -216,7 +170,6 @@ const MovieReviewApp = () => {
           </div>
         </div>
 
-        {/* Review Form */}
         <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 mb-8 shadow-lg">
           <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
             <MessageSquare className="w-6 h-6 mr-3 text-blue-600" />
@@ -228,8 +181,8 @@ const MovieReviewApp = () => {
                 <label className="block text-slate-700 text-sm font-medium mb-2">Your Name</label>
                 <input
                   type="text"
-                  value={newReview.name}
-                  onChange={(e) => setNewReview({...newReview, name: e.target.value})}
+                  value={newReview.userName}
+                  onChange={(e) => setNewReview({...newReview, userName: e.target.value})}
                   className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                   placeholder="Enter your name"
                   required
@@ -253,8 +206,8 @@ const MovieReviewApp = () => {
             <div>
               <label className="block text-slate-700 text-sm font-medium mb-2">Your Review</label>
               <textarea
-                value={newReview.review}
-                onChange={(e) => setNewReview({...newReview, review: e.target.value})}
+                value={newReview.reviewText}
+                onChange={(e) => setNewReview({...newReview, reviewText: e.target.value})}
                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm"
                 rows="4"
                 placeholder="Share your thoughts about the movie..."
@@ -270,43 +223,35 @@ const MovieReviewApp = () => {
           </div>
         </div>
 
-        {/* Reviews List */}
         <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 shadow-lg">
           <h2 className="text-2xl font-bold text-slate-800 mb-6">Recent Reviews</h2>
           <div className="space-y-6">
-            {reviews.map((review) => (
-              <div key={review.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
+            {reviews.map((review, index) => (
+              <div key={index} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
                   <div className="flex items-center space-x-3 mb-3 sm:mb-0">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                      {review.name.charAt(0).toUpperCase()}
+                      {review?.userName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">{review.name}</h3>
+                      <h3 className="font-semibold text-slate-800">{review.userName}</h3>
                       <div className="flex items-center space-x-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-slate-300'}`} 
+                              className={`w-4 h-4 ${i < review?.rating ? 'text-yellow-500 fill-current' : 'text-slate-300'}`} 
                             />
                           ))}
                         </div>
                         <span className="text-slate-500 text-sm">
-                          {review.timestamp.toLocaleDateString()}
+                           {new Date(review?.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${getSentimentColor(review.sentiment)}`}>
-                    {getSentimentIcon(review.sentiment)}
-                    <span className="text-sm font-medium capitalize">{review.sentiment}</span>
-                    <span className="text-xs opacity-75">
-                      ({(review.confidence * 100).toFixed(0)}%)
-                    </span>
-                  </div>
                 </div>
-                <p className="text-slate-700 leading-relaxed">{review.review}</p>
+                <p className="text-slate-700 leading-relaxed">{review?.reviewText}</p>
               </div>
             ))}
           </div>

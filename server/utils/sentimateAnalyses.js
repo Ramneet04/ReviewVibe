@@ -1,11 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
-const genAi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const SentimateAnalyzer = async ({movieName, rating, reviewText})=>{
 
-    const model = genAi.getGenerativeModel({
-        model :'gemini-pro'
+    const model = genAI.getGenerativeModel({
+        model :'gemini-1.5-flash'
     });
 
     const prompt = `
@@ -25,18 +25,15 @@ const SentimateAnalyzer = async ({movieName, rating, reviewText})=>{
           User Rating: ${rating || 'N/A'}
           Review: "${reviewText}"`;
 
-    const response = await model.generateContent(prompt);
-    const outputText = response.response.text().trim();
-
     try {
-        const answer = JSON.parse(outputText);
-        const sentiment = answer.sentiment;
-        const reason = answer.reason;
+        const response = await model.generateContent(prompt);
+        const outputText = response.response.text().trim();
+        const cleaned = outputText.replace(/```json|```/g, '').trim();
+        const {sentiment, reason} = JSON.parse(cleaned);
         return {sentiment, reason};
-
     } catch (error) {
-         console.error("Parsing Gemini response failed:", err);
-         return { sentiment: "Unknown", reason: "Failed to analyze sentiment." };
+         console.error("Parsing Gemini response failed:", error);
+         return { sentiment: "Neutral", reason: "Failed to analyze sentiment." };
     }
 }
 

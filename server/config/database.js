@@ -1,14 +1,11 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const { MONGODB_URL } = process.env;
+const { MONGO_URI } = process.env;
 
 const Dbconnect = () => {
 	mongoose
-		.connect(MONGODB_URL, {
-			useNewUrlparser: true,
-			useUnifiedTopology: true,
-		})
+		.connect(MONGO_URI)
 		.then(console.log(`DB Connection Success`))
 		.catch((err) => {
 			console.log(`DB Connection Failed`);
@@ -16,4 +13,4 @@ const Dbconnect = () => {
 			process.exit(1);
 		});
 };
-export default Dbconnect;
+module.exports = Dbconnect;
